@@ -11,6 +11,7 @@ Start a Proxmox VM by sending a wake-on-lan packet.
 3. `systemct daemon-reload`
 4. `systemctl start pve-wol`
 5. `systemctl enable pve-wol`
+6. Test it! `wakeonlan <VM-MAC-addr>`
 
 > [!TIP]
 > The mapping table of mac address -> vm id automatically updates when a file in the config directory is changed.

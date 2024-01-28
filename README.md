@@ -18,7 +18,7 @@ Start a Proxmox VM by sending a wake-on-lan packet.
 > If a change is not detected, it can be manually reloaded with `systemctl reload pve-wol` or by sending a `SIGHUP`.
 
 ### TODO:
-[ ] Docker image
-[ ] lxc container template
-[ ] Switch from `qm` to pve API
-[ ] WOL for lxc containers
+- [ ] Docker image
+- [ ] lxc container template
+- [ ] Switch from `qm` to pve API
+- [ ] WOL for lxc containers

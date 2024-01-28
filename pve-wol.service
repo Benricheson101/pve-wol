@@ -1,0 +1,13 @@
+[Unit]
+Description=Wake-On-LAN for Proxmox VE virtual machines
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/pve-wol/wol.js /etc/pve/qemu-server
+ExecReload=/bin/kill -SIGHUP $MAINPID
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+# vim: ft=systemd

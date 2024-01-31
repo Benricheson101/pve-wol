@@ -1,13 +1,16 @@
-const {createSocket} = require('node:dgram');
-const {createReadStream, watch} = require('node:fs');
-const {readdir} = require('node:fs/promises');
 const path = require('node:path');
 const {createInterface} = require('node:readline');
-const {setTimeout} = require('node:timers/promises');
+const {createReadStream, watch} = require('node:fs');
+const {createSocket} = require('node:dgram');
 const {exec: _exec} = require('node:child_process');
 const {promisify} = require('node:util');
+const {readdir} = require('node:fs/promises');
+const {setTimeout} = require('node:timers/promises');
 
 const exec = promisify(_exec);
+
+const QM_PATH = process.env.QM_PATH || '/usr/sbin/qm';
+const VM_CONFIG_DIR = process.env.VM_CONFIG_DIR || process.argv[2] || '/etc/pve/qemu-server'
 
 const createMACTable = async dir => {
   const files = await readdir(dir, {withFileTypes: true})
@@ -40,7 +43,7 @@ const createMACTable = async dir => {
     fileStream.close();
 
     return results;
-  }))
+  }));
 
   return Object.fromEntries(entries.flat())
 };
@@ -59,7 +62,6 @@ const createDebouncedStartVM = () => {
 
     console.log('Starting VM:', id);
 
-    const QM_PATH = '/usr/sbin/qm';
     const toCmd = args => args.map(a => JSON.stringify(a)).join(' ');
 
     const _statusCmdOutput = await exec(toCmd([
@@ -82,23 +84,26 @@ const createDebouncedStartVM = () => {
 
     const vmStatus = statusCmdOutput.replace('status: ', '');
 
-    if (['started', 'running'].includes(vmStatus)) {
-      console.error('Tried to wake already started VM:', id);
-      return;
-    }
+    const startCommandMap = {
+      stopped: [QM_PATH, 'start', id],
+      suspended: [QM_PATH, 'resume', id],
+    };
 
-    try {
-      const startOutput = await exec(toCmd([QM_PATH, 'start', id]));
-      if (startOutput.stderr) {
-        console.error('Error starting vm', id, ':', startOutput.stderr.trim());
+  if (vmStatus in startCommandMap) {
+      try {
+        const startOutput = await exec(toCmd(startCommandMap[vmStatus]));
+        if (startOutput.stderr) {
+          console.error('Error starting vm', id, ':', startOutput.stderr.trim());
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to start vm', id, err.message.trim());
         return;
       }
-    } catch (err) {
-      console.error('Failed to start vm', id, err.message.trim());
-      return;
+    } else {
+      console.info('Tried to start VM with unknown status:', vmStatus);
     }
-  };
-
+  }
   startVM.isOnCooldown = id => cooldowns.has(id);
 
   return startVM;
@@ -164,5 +169,4 @@ const main = async dir => {
   });
 };
 
-const dir = process.argv[2] || '/etc/pve/qemu-server';
-main(dir).catch(console.error);
+main(VM_CONFIG_DIR).catch(console.error);

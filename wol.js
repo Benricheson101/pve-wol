@@ -107,7 +107,19 @@ const createDebouncedStartVM = () => {
   startVM.isOnCooldown = id => cooldowns.has(id);
 
   return startVM;
-}
+};
+
+const throttle = (fn, ms = 5_000) => {
+  let lastRun = 0;
+
+  return function() {
+    const now = Date.now();
+    if (now - lastRun > ms) {
+      lastRun = now;
+      return fn.apply(this, arguments);
+    }
+  };
+};
 
 const main = async dir => {
   let macTable;
@@ -154,10 +166,10 @@ const main = async dir => {
     }
   });
 
-  watch(dir, () => {
+  watch(dir, throttle(() => {
     console.log('Detected change in PVE configs, reloading...');
     reloadMACTable();
-  });
+  }));
 
   process.on('SIGHUP', () => {
     console.log('Got SIGHUP, reloading MAC table');
